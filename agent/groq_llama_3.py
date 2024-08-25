@@ -14,11 +14,21 @@ from langchain.chains import RetrievalQA
 import joblib
 import nest_asyncio  # noqa: E402
 nest_asyncio.apply()
+import os
+import agentops
+
+import json
+from ai21 import AI21Client
+from ai21.models import ImprovementType
+
 import dotenv
 
 dotenv.load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+AGENTOPS_API_KEY = os.environ.get('AGENTOPS_API_KEY')
+agentops.init(os.getenv("AGENTOPS_API_KEY"))
+
 import os
 import logging
 from os import environ, path
@@ -41,8 +51,24 @@ from langchain_core.vectorstores import VectorStoreRetriever
 # Setup basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Load environment variables
-load_dotenv()
+
+def process_get_response(response):
+    client = AI21Client(
+    # This is the default and can be omitted
+    api_key=os.environ.get("AI21_API_KEY"),
+    )
+    response1=client.improvements.create(
+      text=response,
+      types=[
+        ImprovementType.FLUENCY,
+        ImprovementType.VOCABULARY_SPECIFICITY,
+        ImprovementType.VOCABULARY_VARIETY,
+        ImprovementType.CLARITY_SHORT_SENTENCES,
+        ImprovementType.CLARITY_CONCISENESS
+    ])
+
+    return response1
+
 
 # CONSTANTS =====================================================
 EMBED_MODEL_NAME = "jina-embeddings-v2-base-en"
@@ -137,4 +163,6 @@ def get_response(query: str):
 def get_query_from_user(prompt_text):
     response = get_response(prompt_text) 
     print("HERE IS RESPONSE:",response)
+   # response1=process_get_response(response)
+    # final_res=str("Find PII: "+response1)+response
     return response

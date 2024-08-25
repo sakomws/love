@@ -1,47 +1,48 @@
 import os
-from ai21 import AI21Client
-from ai21.models.chat import ChatMessage
 import requests
 import json
-# Define the URL and the headers
+from ai21.studio.ai21api import AI21Client, ChatMessage
 
-#curl --request GET \
-#  --url https://api.cloudflare.com/client/v4/accounts/abbe3864d6e415d5692f79c3964262e8/ai-gateway/gateways/phlanx/logs \
-#  --header 'Authorization: Bearer 5y3vheaDFrZ-4A20fpIkM1m7m1_buscEaLMFECZZ' \
-#  --header 'Content-Type: application/json'
+def process_get_response(response, headers=None):
+    """
+    Sends a GET request to the specified URL, processes the response,
+    and uses AI21 to generate a completion based on the response data.
+    
+    Args:
+    url (str): URL to send the GET request to.
+    headers (dict, optional): Headers to include in the request.
+    
+    Returns:
+    str: The response from AI21Client.
+    """
+    # Send the GET request
+    response = requests.get(url, headers=headers if headers else {})
 
+    # Convert the response text to a JSON string
+    data_json = json.dumps(response.text)
 
-url = "https://api.cloudflare.com/client/v4/accounts/abbe3864d6e415d5692f79c3964262e8/ai-gateway/gateways/phlanx/logs"
-headers = {
-    'Authorization': 'Bearer 5y3vheaDFrZ-4A20fpIkM1m7m1_buscEaLMFECZZ',  # Replace 'your_access_token' with your actual access token
-    'Content-Type': 'application/json'
-}
+    # Print the JSON string (for debugging)
+    print(data_json)
 
-# Send the GET request
-response = requests.get(url, headers=headers)
+    # Initialize AI21Client with the API key
+    client = AI21Client(api_key=os.environ.get("AI21_API_KEY"))
 
-data_json = json.dumps(response.text)
-
-# Print the JSON string
-print(data_json)
-
-client = AI21Client(
-    # This is the default and can be omitted
-    api_key=os.environ.get("AI21_API_KEY"),
-)
-
-response_a=client.chat.completions.create(
-  model="jamba-instruct-preview",
-  messages=[ChatMessage(
-      content="find pii in:"+str(data_json),
-      role="user",
+    # Create a completion with AI21 using the response data
+    response_a = client.chat.completions.create(
+        model="jamba-instruct-preview",
+        messages=[ChatMessage(
+            content="find pii in:" + str(data_json),
+            role="user",
+        )],
+        n=1, 
+        max_tokens=1024,
+        temperature=0.7,
+        top_p=1,
+        stop=[],
     )
-],
-  n=1, 
-  max_tokens=1024,
-  temperature=0.7,
-  top_p=1,
-  stop=[],
-)
 
-print(response_a)
+    # Print the completion (for debugging)
+    print(response_a)
+
+    # Return the formatted completion response or the full object as needed
+    return response_a.text if hasattr(response_a, 'text') else str(response_a)
